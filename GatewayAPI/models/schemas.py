@@ -34,7 +34,8 @@ class ApiStatusDetail(BaseModel):
 class GatewayStatusResponse(BaseModel):
     gateway: str = Field(default="online", description="Gateway API status")
     apis: Dict[str, ApiStatusDetail] = Field(..., description="Status breakdown of all satellite APIs")
-    ollama: str = Field(..., description="Ollama LLM connectivity: connected or disconnected")
+    openai: str = Field(default="online", description="OpenAI Cloud Engine status")
+    ollama: Optional[str] = Field(default="disconnected", description="Legacy field for backwards compatibility")
 
 
 class HistoryResponse(BaseModel):
