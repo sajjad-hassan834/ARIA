@@ -24,10 +24,8 @@ SUPPORTED_AUDIO_EXTENSIONS = [".wav", ".mp3", ".webm", ".m4a", ".ogg", ".flac"]
 # NLU & Intent Matching Config
 FUZZY_THRESHOLD = 75
 
-# LLM / Ollama Fallback Config
-USE_LLM_FALLBACK = True
-OLLAMA_MODEL = "phi3:mini"
-OLLAMA_HOST = "http://localhost:11434"
+# Intelligence Engine Config
+USE_OPENAI = True
 
 
 # Command Processor & History Config

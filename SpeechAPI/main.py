@@ -26,7 +26,6 @@ from exceptions import (
     TTSSynthesisException
 )
 from services.whisper_service import whisper_service
-from services.llm_service import check_ollama_status
 from routes.speech_to_text import router as stt_router
 
 from routes.text_to_speech import router as tts_router
@@ -253,8 +252,7 @@ async def health_check():
     return {
         "status": "ok",
         "whisper": "loaded" if is_model_loaded else "unloaded",
-        "ollama": "disconnected",
-        "model": config.OLLAMA_MODEL
+        "engine": "openai",
     }
 
 

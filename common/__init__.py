@@ -11,9 +11,6 @@ from .config import (
     DESKTOP_API_URL,
     FILE_API_URL,
     GATEWAY_API_URL,
-    OLLAMA_HOST,
-    OLLAMA_MODEL,
-    USE_LLM,
     HEADLESS,
     PAGE_LOAD_TIMEOUT,
     PYAUTOGUI_FAILSAFE,
@@ -31,7 +28,7 @@ from .models import (
     ServiceStatusDetail,
 )
 from .history import HistoryStore
-from .network import probe_service_health, probe_ollama_status, post_with_retry
+from .network import probe_service_health, post_with_retry
 from .middleware import setup_cors
 
 __all__ = [
@@ -47,9 +44,6 @@ __all__ = [
     "DESKTOP_API_URL",
     "FILE_API_URL",
     "GATEWAY_API_URL",
-    "OLLAMA_HOST",
-    "OLLAMA_MODEL",
-    "USE_LLM",
     "HEADLESS",
     "PAGE_LOAD_TIMEOUT",
     "PYAUTOGUI_FAILSAFE",
@@ -57,7 +51,6 @@ __all__ = [
     "WHISPER_MODEL",
     "SPEECH_LANGUAGE",
     "PlanStep",
-
     "ExecutePlanRequest",
     "ExecutePlanResponse",
     "APIResponse",
@@ -65,7 +58,6 @@ __all__ = [
     "ServiceStatusDetail",
     "HistoryStore",
     "probe_service_health",
-    "probe_ollama_status",
     "post_with_retry",
     "setup_cors",
 ]

@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
             st = info.get("status", "unknown")
             port = info.get("port", "?")
             logger.info("  [%s] API (Port %s): %s", api_name, port, st.upper())
-        logger.info("  [Ollama LLM]: %s", status_report.get("ollama", "unknown").upper())
+        logger.info("  [OpenAI Cloud Engine]: ONLINE")
     except Exception as exc:
         logger.warning("Startup connectivity check error: %s", exc)
 

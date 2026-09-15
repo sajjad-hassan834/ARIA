@@ -28,19 +28,6 @@ async def probe_service_health(
     return {"status": status, "port": port, "url": base_url}
 
 
-async def probe_ollama_status(
-    client: httpx.AsyncClient,
-    host: str,
-    timeout: float = 2.0
-) -> str:
-    """Probe local Ollama tags API endpoint."""
-    probe_timeout = httpx.Timeout(timeout, connect=timeout)
-    try:
-        r = await client.get(f"{host.rstrip('/')}/api/tags", timeout=probe_timeout)
-        return "connected" if r.status_code == 200 else "disconnected"
-    except Exception:
-        return "disconnected"
-
 
 async def post_with_retry(
     client: httpx.AsyncClient,

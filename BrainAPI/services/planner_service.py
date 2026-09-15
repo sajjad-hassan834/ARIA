@@ -228,10 +228,11 @@ class PlannerService:
 
     async def plan_with_llm(self, text: str) -> Optional[Dict[str, Any]]:
         """
-        Connect to Ollama phi3:mini at http://localhost:11434 to synthesize execution plan.
+        Synthesize execution plan using OpenAI GPT-4o-mini.
         """
-        model_name = getattr(config, "OLLAMA_MODEL", "phi3:mini") or "phi3:mini"
-        host_url = getattr(config, "OLLAMA_HOST", "http://localhost:11434") or "http://localhost:11434"
+        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("openai_api_key")
+        if not api_key:
+            return None
 
         system_prompt = """You are ARIA Brain Planner.
 Convert user commands (in English, Hindi, or Hinglish) into a JSON execution plan.
@@ -253,49 +254,27 @@ Return ONLY a valid JSON object matching this schema:
 }"""
 
         try:
-            timeout = httpx.Timeout(8.0, connect=0.5)
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                # Fast check if Ollama is up
-                tag_res = await client.get(f"{host_url.rstrip('/')}/api/tags")
-                if tag_res.status_code != 200:
-                    return None
-
-                payload = {
-                    "model": model_name,
-                    # NOTE: Do NOT set "format": "json" with phi3:mini — it
-                    # returns empty content causing 'model output must contain
-                    # either output text or tool calls' error from Ollama.
-                    "prompt": f"{system_prompt}\n\nUser Command: {text}\nJSON Plan:",
-                    "stream": False,
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
                 }
-
-                res = await client.post(f"{host_url.rstrip('/')}/api/generate", json=payload)
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"User Command: {text}"},
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.1,
+                }
+                res = await client.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
                 if res.status_code == 200:
                     data = res.json()
-                    raw_text = data.get("response", "").strip()
-                    if not raw_text:
-                        return None
-                    # Extract JSON from free-text output
-                    import re as _re
-                    _m = _re.search(r"\{.*\}", raw_text, _re.DOTALL)
-                    raw_text = _m.group() if _m else raw_text
-                    if raw_text:
-                        parsed = json.loads(raw_text)
-                        if isinstance(parsed, dict) and "steps" in parsed:
-                            parsed["input"] = text
-                            if "api_route" not in parsed:
-                                parsed["api_route"] = "browser_api" if "youtube" in text.lower() else "desktop_api"
-                            if "port" not in parsed:
-                                port_map = {"browser_api": 8002, "desktop_api": 8003, "file_api": 8004}
-                                parsed["port"] = port_map.get(parsed["api_route"], 8003)
-                            if "confidence" not in parsed:
-                                parsed["confidence"] = 0.95
-                            if "estimated_time" not in parsed:
-                                parsed["estimated_time"] = "2s"
-                            return parsed
-        except Exception:
-            return None
-
+                    content = data["choices"][0]["message"]["content"]
+                    return json.loads(content)
+        except Exception as e:
+            logger.warning(f"OpenAI planning failed in planner_service: {e}")
         return None
 
 

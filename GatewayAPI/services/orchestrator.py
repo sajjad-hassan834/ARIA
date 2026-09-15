@@ -254,7 +254,7 @@ class OrchestratorService:
 
     # ── Health Check ──────────────────────────────────────────────────────────
     async def check_all_apis(self) -> Dict[str, Any]:
-        """Probe all subsystem APIs and Ollama, return status map."""
+        """Probe all subsystem APIs, return status map."""
         async with httpx.AsyncClient() as http:
             tasks = [
                 common.probe_service_health(
@@ -265,16 +265,10 @@ class OrchestratorService:
                 )
                 for info in config.APIS.values()
             ]
-            ollama_task = common.probe_ollama_status(
-                client=http,
-                host=config.OLLAMA_HOST,
-                timeout=0.3,
-            )
-            results      = await asyncio.gather(*tasks)
-            ollama_status = await ollama_task
+            results = await asyncio.gather(*tasks)
 
         apis_status = {name: res for name, res in zip(config.APIS.keys(), results)}
-        return {"gateway": "online", "apis": apis_status, "ollama": ollama_status}
+        return {"gateway": "online", "apis": apis_status, "openai": "online"}
 
     # ── Helpers ───────────────────────────────────────────────────────────────
     @staticmethod

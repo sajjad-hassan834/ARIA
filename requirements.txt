@@ -34,8 +34,7 @@ pyautogui>=0.9.54
 psutil>=5.9.0
 pillow>=9.5.0
 
-# Brain API & Local LLM Integration
-ollama>=0.6.0
+# Brain API & OpenAI Intelligence Engine
 openai>=1.0.0
 SpeechRecognition>=3.10.0
 

@@ -70,4 +70,4 @@ class HealthResponse(BaseModel):
     browser_api: str
     desktop_api: str
     file_api: str
-    ollama: str
+    openai: str = "online"

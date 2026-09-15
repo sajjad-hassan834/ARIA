@@ -11,8 +11,6 @@ import common
 
 PORT = common.PORTS["file_api"]
 BRAIN_API_URL = common.BRAIN_API_URL
-OLLAMA_MODEL = "phi3:mini"
-OLLAMA_HOST = "http://localhost:11434"
 
 
 BASE_DIR = Path(__file__).resolve().parent

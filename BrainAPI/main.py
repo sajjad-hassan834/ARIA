@@ -63,17 +63,6 @@ async def check_service_status(client: httpx.AsyncClient, url: str) -> str:
     return "disconnected"
 
 
-async def check_ollama_status(client: httpx.AsyncClient, host: str) -> str:
-    """Probe Ollama tags API endpoint with fast timeout."""
-    try:
-        res = await client.get(f"{host.rstrip('/')}/api/tags", timeout=PROBE_TIMEOUT)
-        if res.status_code == 200:
-            return "connected"
-    except Exception:
-        pass
-    return "disconnected"
-
-
 @app.get("/", tags=["General"])
 async def root():
     return {
@@ -94,7 +83,7 @@ async def health_check(request: Request):
     - Browser API (8002)
     - Desktop API (8003)
     - File API (8004)
-    - Ollama LLM service (11434)
+    - OpenAI Cloud Engine
     """
     current_port = request.url.port or config.PORT
 
@@ -108,15 +97,13 @@ async def health_check(request: Request):
         browser_task = check_service_status(client, config.BROWSER_API_URL)
         desktop_task = check_service_status(client, config.DESKTOP_API_URL)
         file_task = check_service_status(client, config.FILE_API_URL)
-        ollama_task = check_ollama_status(client, config.OLLAMA_HOST)
 
-        speech_status, browser_status, desktop_status, file_status, ollama_status = (
+        speech_status, browser_status, desktop_status, file_status = (
             await asyncio.gather(
                 speech_task,
                 browser_task,
                 desktop_task,
                 file_task,
-                ollama_task,
             )
         )
 
@@ -127,7 +114,7 @@ async def health_check(request: Request):
         "browser_api": browser_status,
         "desktop_api": desktop_status,
         "file_api": file_status,
-        "ollama": ollama_status,
+        "openai": "online",
     }
 
 

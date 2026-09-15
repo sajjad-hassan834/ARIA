@@ -25,7 +25,6 @@ PORTS = {
     "desktop_api": int(os.getenv("DESKTOP_PORT", 8003)),
     "file_api": int(os.getenv("FILE_PORT", 8004)),
     "gateway_api": int(os.getenv("PORT", os.getenv("GATEWAY_PORT", 8080))),
-    "ollama": 11434,
 }
 
 # Subsystem API URLs
@@ -35,7 +34,6 @@ BROWSER_API_URL = os.getenv("BROWSER_API_URL", f"http://127.0.0.1:{PORTS['browse
 DESKTOP_API_URL = os.getenv("DESKTOP_API_URL", f"http://127.0.0.1:{PORTS['desktop_api']}")
 FILE_API_URL = os.getenv("FILE_API_URL", f"http://127.0.0.1:{PORTS['file_api']}")
 GATEWAY_API_URL = os.getenv("GATEWAY_API_URL", f"http://127.0.0.1:{PORTS['gateway_api']}")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 
 # Centralized API Map
 APIS = {
@@ -47,8 +45,6 @@ APIS = {
 }
 
 # Subsystem Specific Settings
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini")
-USE_LLM = os.getenv("USE_LLM", "false").lower() in ("true", "1", "yes")
 
 HEADLESS = os.getenv("HEADLESS", "false").lower() in ("true", "1", "yes")
 PAGE_LOAD_TIMEOUT = int(os.getenv("PAGE_LOAD_TIMEOUT", 45000))
