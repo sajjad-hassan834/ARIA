@@ -469,6 +469,8 @@ export function App() {
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef   = useRef([]);
+  const recognitionRef   = useRef(null);
+  const transcriptRef    = useRef('');
 
   const fetchStatus = async () => {
     setIsStatusLoading(true);
@@ -485,7 +487,7 @@ export function App() {
   useEffect(() => {
     fetchStatus();
     fetchHistory();
-    const si = setInterval(fetchStatus, 5000);
+    const si = setInterval(fetchStatus, 20000); // 20s peaceful polling
     return () => clearInterval(si);
   }, []);
 
@@ -515,35 +517,107 @@ export function App() {
   };
 
   const toggleVoice = async () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
     if (isRecording) {
-      if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+      if (mediaRecorderRef.current?.state !== 'inactive') {
+        try { mediaRecorderRef.current?.stop(); } catch (e) {}
+      }
       setIsRecording(false);
       setOrbState('processing');
-    } else {
+      return;
+    }
+
+    // 1. First Priority: Browser Native Web Speech API (Instant real-time transcription)
+    if (SpeechRecognition) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioChunksRef.current = [];
-        const mr = new MediaRecorder(stream);
-        mediaRecorderRef.current = mr;
-        mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-        mr.onstop = async () => {
-          stream.getTracks().forEach(t => t.stop());
-          const blob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-          setOrbState('processing');
-          const result = await sendAudioCommand(blob, 'voice_command.wav');
-          setLastResponse(result);
-          setOrbState(result.status === 'success' ? 'success' : 'error');
-          fetchHistory();
-          setTimeout(() => setOrbState('idle'), 4500);
+        const reco = new SpeechRecognition();
+        reco.continuous = false;
+        reco.interimResults = true;
+        reco.lang = 'en-US'; // Also handles Roman Urdu / English mixed terms
+        transcriptRef.current = '';
+
+        reco.onstart = () => {
+          setIsRecording(true);
+          setOrbState('listening');
+          setInputText('Listening... bolain...');
         };
-        mr.start();
-        setIsRecording(true);
-        setOrbState('listening');
+
+        reco.onresult = (event) => {
+          const current = Array.from(event.results)
+            .map(r => r[0].transcript)
+            .join('');
+          transcriptRef.current = current;
+          setInputText(current);
+        };
+
+        reco.onend = async () => {
+          setIsRecording(false);
+          const finalCmd = transcriptRef.current.trim();
+          if (finalCmd) {
+            setOrbState('processing');
+            const result = await sendTextCommand(finalCmd);
+            setLastResponse(result);
+            setOrbState(result.status === 'success' ? 'success' : 'error');
+            fetchHistory();
+            setTimeout(() => setOrbState('idle'), 4500);
+          } else {
+            setInputText('');
+            setOrbState('idle');
+          }
+        };
+
+        reco.onerror = (e) => {
+          console.warn('WebSpeech event error, using MediaRecorder fallback:', e.error);
+          setIsRecording(false);
+          if (e.error === 'not-allowed') {
+            setLastResponse({ command: '[Voice]', intent: 'error', status: 'error', response: 'Microphone permission denied in Chrome. Click lock icon next to URL to allow microphone.', time: '0.0s' });
+            setOrbState('error');
+            setTimeout(() => setOrbState('idle'), 4000);
+          } else {
+            startMediaRecorderFallback();
+          }
+        };
+
+        recognitionRef.current = reco;
+        reco.start();
+        return;
       } catch (err) {
-        setLastResponse({ command: '[Voice]', intent: 'error', status: 'error', response: `Mic error: ${err.message}`, time: '0.0s' });
-        setOrbState('error');
-        setTimeout(() => setOrbState('idle'), 3000);
+        console.warn('SpeechRecognition failed to start, falling back to MediaRecorder:', err);
       }
+    }
+
+    // 2. Fallback: MediaRecorder stream upload to Gateway
+    startMediaRecorderFallback();
+  };
+
+  const startMediaRecorderFallback = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mr = new MediaRecorder(stream);
+      mediaRecorderRef.current = mr;
+      mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setOrbState('processing');
+        const result = await sendAudioCommand(blob, 'voice_command.webm');
+        setLastResponse(result);
+        setOrbState(result.status === 'success' ? 'success' : 'error');
+        fetchHistory();
+        setTimeout(() => setOrbState('idle'), 4500);
+      };
+      mr.start();
+      setIsRecording(true);
+      setOrbState('listening');
+    } catch (err) {
+      setLastResponse({ command: '[Voice]', intent: 'error', status: 'error', response: `Mic error: ${err.message}. Please allow microphone permissions in Chrome.`, time: '0.0s' });
+      setOrbState('error');
+      setTimeout(() => setOrbState('idle'), 3500);
     }
   };
 

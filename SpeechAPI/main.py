@@ -60,9 +60,36 @@ async def lifespan(app: FastAPI):
         logger.error(error_msg, exc_info=True)
         app.state.startup_error = error_msg
 
+    # Initialize and start background voice listener on laptop mic
+    app.state.voice_listener = None
+    try:
+        from services.voice_service import VoiceService
+        import httpx
+
+        def on_voice_command(text: str):
+            logger.info(f"🎙️ [VOICE COMMAND DETECTED]: '{text}' -> Dispatching to Gateway...")
+            try:
+                r = httpx.post(
+                    f"{config.GATEWAY_API_URL.rstrip('/')}/api/gateway/command/text",
+                    json={"command": text, "language": "auto"},
+                    timeout=30.0,
+                )
+                logger.info(f"Gateway execution status: {r.status_code}")
+            except Exception as ex:
+                logger.error(f"Failed to forward voice command: {ex}")
+
+        listener = VoiceService(logger=logger, on_command_callback=on_voice_command)
+        listener.start()
+        app.state.voice_listener = listener
+        logger.info("🎙️ Background Voice Listener started! Microphone is actively listening for commands.")
+    except Exception as e:
+        logger.warning(f"Could not initialize background voice listener: {e}")
+
     yield
 
     logger.info("Shutting down SpeechAPI server...")
+    if getattr(app.state, "voice_listener", None):
+        app.state.voice_listener.stop()
 
 # Initialize FastAPI App with Swagger UI /docs
 app = FastAPI(
@@ -107,6 +134,10 @@ def format_error_response(
 # Request Logging & Exception Safety Middleware
 @app.middleware("http")
 async def log_requests_middleware(request: Request, call_next):
+    # Silence routine health checks
+    if request.url.path in ("/health", "/", "/api/speech/health", "/api/gateway/status"):
+        return await call_next(request)
+
     start_time = time.perf_counter()
     try:
         response = await call_next(request)
@@ -228,6 +259,29 @@ async def health_check():
         "model": config.OLLAMA_MODEL
     }
 
+
+
+@app.get("/api/speech/listener/status", summary="Get background listener status", tags=["Voice Listener"])
+async def get_listener_status(request: Request):
+    listener = getattr(request.app.state, "voice_listener", None)
+    return {
+        "active": listener.is_listening if listener else False,
+        "mode": "background_microphone",
+    }
+
+@app.post("/api/speech/listener/start", summary="Start background microphone listener", tags=["Voice Listener"])
+async def start_listener(request: Request):
+    listener = getattr(request.app.state, "voice_listener", None)
+    if listener and not listener.is_listening:
+        listener.start()
+    return {"status": "started", "active": True}
+
+@app.post("/api/speech/listener/stop", summary="Stop background microphone listener", tags=["Voice Listener"])
+async def stop_listener(request: Request):
+    listener = getattr(request.app.state, "voice_listener", None)
+    if listener and listener.is_listening:
+        listener.stop()
+    return {"status": "stopped", "active": False}
 
 
 if __name__ == "__main__":

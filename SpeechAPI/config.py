@@ -13,6 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent
 # Server Config from Global Common
 API_HOST = common.DEFAULT_HOST
 API_PORT = common.PORTS["speech_api"]
+GATEWAY_API_URL = common.GATEWAY_API_URL
 DEBUG = True
 
 # Whisper Speech Recognition Config
