@@ -250,12 +250,10 @@ async def health_check():
         getattr(app.state, "whisper_service", None) is not None
         and app.state.whisper_service.model is not None
     )
-    ollama_connected = await check_ollama_status()
-
     return {
         "status": "ok",
         "whisper": "loaded" if is_model_loaded else "unloaded",
-        "ollama": "connected" if ollama_connected else "disconnected",
+        "ollama": "disconnected",
         "model": config.OLLAMA_MODEL
     }
 

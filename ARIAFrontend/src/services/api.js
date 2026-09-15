@@ -72,7 +72,7 @@ export const sendAudioCommand = async (audioBlob, filename = 'command.wav') => {
  */
 export const getSystemStatus = async () => {
   try {
-    const response = await client.get('/api/gateway/status', { timeout: 4000 });
+    const response = await client.get('/api/gateway/status', { timeout: 12000 });
     return response.data;
   } catch (err) {
     return {

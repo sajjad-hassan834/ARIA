@@ -268,7 +268,7 @@ class OrchestratorService:
             ollama_task = common.probe_ollama_status(
                 client=http,
                 host=config.OLLAMA_HOST,
-                timeout=config.HEALTH_TIMEOUT,
+                timeout=0.3,
             )
             results      = await asyncio.gather(*tasks)
             ollama_status = await ollama_task

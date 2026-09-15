@@ -47,7 +47,7 @@ class BrowserService:
         self.current_url = url
         logger.info(f"Opening system browser with URL: {url}")
         webbrowser.open(url)
-        time.sleep(2)
+        await asyncio.sleep(0.1)
 
         elapsed = time.perf_counter() - start_time
         time_str = f"{elapsed:.2f}s"
@@ -69,7 +69,7 @@ class BrowserService:
 
         logger.info(f"Searching YouTube for '{clean_query}': {url}")
         webbrowser.open(url)
-        time.sleep(2)
+        await asyncio.sleep(0.1)
 
         elapsed = time.perf_counter() - start_time
         time_str = f"{elapsed:.2f}s"
@@ -92,7 +92,7 @@ class BrowserService:
 
         logger.info(f"Searching Google for '{clean_query}': {url}")
         webbrowser.open(url)
-        time.sleep(2)
+        await asyncio.sleep(0.1)
 
         elapsed = time.perf_counter() - start_time
         time_str = f"{elapsed:.2f}s"
