@@ -1,0 +1,253 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+
+@layer base {
+  :root {
+    --cyan:    #00d4ff;
+    --purple:  #7c3aed;
+    --green:   #00ff88;
+    --red:     #ff3366;
+    --gold:    #ffd700;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background-color: #000;
+    color: #e2e8f0;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #root {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  h1, h2, h3, .font-orbitron {
+    font-family: 'Orbitron', monospace;
+  }
+
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* =========================================================
+   CYBER GRID BACKGROUND
+   ========================================================= */
+.bg-cyber-grid {
+  background-color: #000;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* =========================================================
+   SCANLINES OVERLAY
+   ========================================================= */
+.scanlines {
+  background:
+    linear-gradient(rgba(0,0,0,0) 50%, rgba(0,212,255,0.018) 50%),
+    linear-gradient(90deg,
+      rgba(255,0,0,0.008),
+      rgba(0,255,0,0.004),
+      rgba(0,0,255,0.008)
+    );
+  background-size: 100% 3px, 4px 100%;
+  pointer-events: none;
+  animation: scanroll 8s linear infinite;
+}
+
+@keyframes scanroll {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 0 100px, 0 0; }
+}
+
+/* =========================================================
+   GLASS PANEL (Core UI Card)
+   ========================================================= */
+.glass-panel {
+  background: rgba(5, 8, 18, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(0, 212, 255, 0.14);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.7),
+    inset 0 0 20px rgba(0,212,255,0.04);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-panel:hover {
+  border-color: rgba(0,212,255,0.28);
+  box-shadow:
+    0 12px 50px rgba(0,0,0,0.75),
+    inset 0 0 24px rgba(0,212,255,0.07);
+}
+
+/* Variant with purple tint */
+.glass-panel-purple {
+  background: rgba(8, 4, 22, 0.72);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.7),
+    inset 0 0 20px rgba(124,58,237,0.04);
+}
+
+/* =========================================================
+   HUD CORNER DECORATORS
+   ========================================================= */
+.hud-corner {
+  position: relative;
+}
+.hud-corner::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 12px; height: 12px;
+  border-top: 2px solid rgba(0,212,255,0.7);
+  border-left: 2px solid rgba(0,212,255,0.7);
+  pointer-events: none;
+  z-index: 5;
+}
+.hud-corner::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 12px; height: 12px;
+  border-bottom: 2px solid rgba(0,212,255,0.7);
+  border-right: 2px solid rgba(0,212,255,0.7);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* =========================================================
+   GLOW UTILITIES
+   ========================================================= */
+.glow-cyan   { box-shadow: 0 0 24px rgba(0,212,255,0.5); }
+.glow-purple { box-shadow: 0 0 24px rgba(124,58,237,0.5); }
+.glow-green  { box-shadow: 0 0 24px rgba(0,255,136,0.5); }
+.glow-red    { box-shadow: 0 0 24px rgba(255,51,102,0.5); }
+
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(0,212,255,0.65), 0 0 22px rgba(0,212,255,0.35);
+}
+.text-glow-purple {
+  text-shadow: 0 0 10px rgba(124,58,237,0.65), 0 0 22px rgba(124,58,237,0.35);
+}
+.text-glow-green {
+  text-shadow: 0 0 10px rgba(0,255,136,0.65), 0 0 22px rgba(0,255,136,0.35);
+}
+
+/* =========================================================
+   ANIMATED GRADIENT TEXT
+   ========================================================= */
+.aria-brand {
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 50%, #00d4ff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* =========================================================
+   ORB PULSE RING
+   ========================================================= */
+@keyframes orbPulse {
+  0%, 100% { transform: scale(1);   opacity: 0.6; }
+  50%       { transform: scale(1.1); opacity: 0.2; }
+}
+
+@keyframes orbSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes dashSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+
+/* =========================================================
+   CUSTOM SCROLLBAR
+   ========================================================= */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: rgba(0,0,0,0.4); }
+::-webkit-scrollbar-thumb  { background: rgba(0,212,255,0.28); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,212,255,0.55); }
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* =========================================================
+   STATUS PILL
+   ========================================================= */
+.status-online  { color: #00ff88; text-shadow: 0 0 8px rgba(0,255,136,0.7); }
+.status-offline { color: #ff3366; text-shadow: 0 0 8px rgba(255,51,102,0.5); }
+
+/* =========================================================
+   INPUT FOCUS RING
+   ========================================================= */
+.aria-input {
+  background: rgba(5, 8, 18, 0.8);
+  border: 1px solid rgba(0,212,255,0.22);
+  color: #f1f5f9;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.aria-input:focus {
+  outline: none;
+  border-color: rgba(0,212,255,0.6);
+  box-shadow: 0 0 0 2px rgba(0,212,255,0.12), 0 0 15px rgba(0,212,255,0.1);
+}
+.aria-input::placeholder { color: rgba(148,163,184,0.45); }
+
+/* =========================================================
+   SEND BUTTON
+   ========================================================= */
+.send-btn {
+  background: linear-gradient(135deg, #00d4ff, #0057ff);
+  color: #000;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  box-shadow: 0 0 18px rgba(0,212,255,0.4);
+  transition: box-shadow 0.2s, transform 0.1s, opacity 0.2s;
+}
+.send-btn:hover:not(:disabled) {
+  box-shadow: 0 0 30px rgba(0,212,255,0.65);
+}
+.send-btn:active:not(:disabled) { transform: scale(0.97); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* =========================================================
+   QUICK PILL
+   ========================================================= */
+.quick-pill {
+  border: 1px solid rgba(0,212,255,0.18);
+  background: rgba(0,212,255,0.05);
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.quick-pill:hover {
+  border-color: rgba(0,212,255,0.5);
+  background: rgba(0,212,255,0.1);
+  color: #67e8f9;
+}
+.quick-pill:active { transform: scale(0.96); }
