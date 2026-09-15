@@ -20,10 +20,11 @@ ROOT_DIR = Path(__file__).resolve().parent
 def get_python_executable(service_dir: Path) -> str:
     """Find virtualenv python executable if present, otherwise global python."""
     candidates = [
-        service_dir / ".venv" / "Scripts" / "python.exe",
         service_dir / "venv" / "Scripts" / "python.exe",
-        service_dir.parent / ".venv" / "Scripts" / "python.exe",
+        service_dir / ".venv" / "Scripts" / "python.exe",
+        ROOT_DIR / "venv" / "Scripts" / "python.exe",
         service_dir.parent / "venv" / "Scripts" / "python.exe",
+        service_dir.parent / ".venv" / "Scripts" / "python.exe",
     ]
     for c in candidates:
         if c.exists():
