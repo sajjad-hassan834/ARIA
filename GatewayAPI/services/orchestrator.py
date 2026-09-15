@@ -91,7 +91,7 @@ class OrchestratorService:
                 msg = brain_err or (
                     f"Brain API HTTP {brain_resp.status_code}" if brain_resp else "Brain API offline"
                 )
-                speak("Brain API se connection nahi ho raha. Backend check karein.")
+                speak("Brain API is offline. Please check backend services.")
                 result = self._error_result(clean, "brain_api", msg, elapsed, is_offline="Connection" in (brain_err or ""))
                 self.record_history(result)
                 return result
@@ -100,7 +100,7 @@ class OrchestratorService:
                 plan = brain_resp.json()
             except Exception as e:
                 elapsed = f"{time.perf_counter() - t0:.1f}s"
-                speak("Plan samajhne mein masla aaya. Dobara try karein.")
+                speak("Could not interpret execution plan. Please try again.")
                 result = self._error_result(clean, "brain_api", str(e), elapsed)
                 self.record_history(result)
                 return result
@@ -115,7 +115,7 @@ class OrchestratorService:
             exec_path = _EXEC_PATHS.get(api_route)
             if not exec_path or not steps:
                 elapsed = f"{time.perf_counter() - t0:.1f}s"
-                speak(plan_resp or "Command samajh liya lekin execute nahi ho saka.")
+                speak(plan_resp or "Understood the command, but no executable steps were generated.")
                 result = {
                     "command": clean,
                     "intent": intent,
@@ -217,21 +217,31 @@ class OrchestratorService:
                 transcribed  = speech_data.get("text", "").strip()
             except Exception as e:
                 elapsed = f"{time.perf_counter() - t0:.1f}s"
-                speak("Awaaz process nahi ho saki.")
+                msg = "Could not process audio. Please try again."
+                speak(msg)
                 result = self._error_result("[Voice]", "speech_api", str(e), elapsed)
                 self.record_history(result)
                 return result
 
-            if not transcribed:
+            # Detect and discard Whisper silence hallucinations
+            clean_low = transcribed.lower().strip(" .!?,")
+            is_hallucination = (
+                not clean_low
+                or len(clean_low) < 2
+                or all(w == "you" for w in clean_low.split())
+                or clean_low in ("you", "thank you", "thanks for watching", "subtitles by", "bye", "amara")
+            )
+            if is_hallucination:
                 elapsed = f"{time.perf_counter() - t0:.1f}s"
-                speak("Kuch suna nahi. Phir se bolain please.")
+                msg = "No clear voice detected. Please speak into your microphone."
+                speak(msg)
                 result = {
-                    "command": "",
-                    "intent": "unknown",
+                    "command": "[Silence / Background Noise]",
+                    "intent": "no_speech",
                     "executed_by": "speech_api",
                     "status": "error",
                     "steps_completed": 0,
-                    "response": "No speech detected. Please speak clearly.",
+                    "response": msg,
                     "time": elapsed,
                     "timestamp": datetime.utcnow().isoformat(),
                 }

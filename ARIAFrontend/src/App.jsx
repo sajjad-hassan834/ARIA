@@ -34,19 +34,22 @@ const APIS = [
   { name: 'Browser', port: 8002, key: 'browser', Icon: Globe },
   { name: 'Desktop', port: 8003, key: 'desktop', Icon: Monitor },
   { name: 'File',    port: 8004, key: 'file',    Icon: Folder },
-  { name: 'Ollama',  port: 11434, key: 'ollama', Icon: Cpu },
+  { name: 'OpenAI',  port: 'Cloud', key: 'openai', Icon: Cpu },
 ];
 
 const getApiStatus = (key, statusData) => {
   if (!statusData) return false;
-  const apis = statusData.apis || {};
   if (key === 'gateway') return statusData.gateway === 'online';
+  if (key === 'openai') return true; // OpenAI Cloud Engine active
   if (key === 'ollama') {
     const o = statusData.ollama || '';
     return o === 'connected' || o === 'online';
   }
-  const v = apis[`${key}_api`]?.status || apis[key]?.status;
-  return v === 'online';
+  const apis = statusData.apis || {};
+  const v = apis[`${key}_api`] || apis[key];
+  if (typeof v === 'string') return v === 'online';
+  if (typeof v === 'object' && v !== null) return v.status === 'online';
+  return false;
 };
 
 /* ========================================================
@@ -543,7 +546,7 @@ export function App() {
         reco.onstart = () => {
           setIsRecording(true);
           setOrbState('listening');
-          setInputText('Listening... bolain...');
+          setInputText('');
         };
 
         reco.onresult = (event) => {
@@ -557,7 +560,7 @@ export function App() {
         reco.onend = async () => {
           setIsRecording(false);
           const finalCmd = transcriptRef.current.trim();
-          if (finalCmd) {
+          if (finalCmd && finalCmd.length >= 2) {
             setOrbState('processing');
             const result = await sendTextCommand(finalCmd);
             setLastResponse(result);
@@ -571,13 +574,17 @@ export function App() {
         };
 
         reco.onerror = (e) => {
-          console.warn('WebSpeech event error, using MediaRecorder fallback:', e.error);
           setIsRecording(false);
+          if (e.error === 'no-speech') {
+            setOrbState('idle');
+            return;
+          }
           if (e.error === 'not-allowed') {
             setLastResponse({ command: '[Voice]', intent: 'error', status: 'error', response: 'Microphone permission denied in Chrome. Click lock icon next to URL to allow microphone.', time: '0.0s' });
             setOrbState('error');
             setTimeout(() => setOrbState('idle'), 4000);
           } else {
+            console.warn('WebSpeech error, using MediaRecorder fallback:', e.error);
             startMediaRecorderFallback();
           }
         };
@@ -598,12 +605,21 @@ export function App() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
+      const startTime = Date.now();
       const mr = new MediaRecorder(stream);
       mediaRecorderRef.current = mr;
       mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
+        const duration = Date.now() - startTime;
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+
+        // Skip accidental clicks or silence (< 1s or < 4KB)
+        if (duration < 900 || blob.size < 4000) {
+          setOrbState('idle');
+          return;
+        }
+
         setOrbState('processing');
         const result = await sendAudioCommand(blob, 'voice_command.webm');
         setLastResponse(result);

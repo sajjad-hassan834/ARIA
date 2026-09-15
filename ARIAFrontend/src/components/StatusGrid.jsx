@@ -29,7 +29,7 @@ export const APIs = [
   { name: 'Browser', port: 8002, icon: 'globe' },
   { name: 'Desktop', port: 8003, icon: 'monitor' },
   { name: 'File', port: 8004, icon: 'folder' },
-  { name: 'Ollama', port: 11434, icon: 'cpu' },
+  { name: 'OpenAI', port: 'Cloud', icon: 'cpu' },
 ];
 
 /**
@@ -40,22 +40,30 @@ const getApiStatus = (name, statusData) => {
 
   const apis = statusData.apis || {};
   const gatewayStatus = statusData.gateway || 'offline';
-  const ollamaStatus = statusData.ollama || 'disconnected';
+
+  const checkVal = (v) => {
+    if (typeof v === 'string') return v === 'online' ? 'online' : 'offline';
+    if (typeof v === 'object' && v !== null) return v.status === 'online' ? 'online' : 'offline';
+    return 'offline';
+  };
 
   switch (name.toLowerCase()) {
     case 'gateway':
       return gatewayStatus === 'online' ? 'online' : 'offline';
     case 'speech':
-      return (apis.speech_api?.status || apis.speech?.status) === 'online' ? 'online' : 'offline';
+      return checkVal(apis.speech_api || apis.speech);
     case 'brain':
-      return (apis.brain_api?.status || apis.brain?.status) === 'online' ? 'online' : 'offline';
+      return checkVal(apis.brain_api || apis.brain);
     case 'browser':
-      return (apis.browser_api?.status || apis.browser?.status) === 'online' ? 'online' : 'offline';
+      return checkVal(apis.browser_api || apis.browser);
     case 'desktop':
-      return (apis.desktop_api?.status || apis.desktop?.status) === 'online' ? 'online' : 'offline';
+      return checkVal(apis.desktop_api || apis.desktop);
     case 'file':
-      return (apis.file_api?.status || apis.file?.status) === 'online' ? 'online' : 'offline';
+      return checkVal(apis.file_api || apis.file);
+    case 'openai':
+      return 'online';
     case 'ollama':
+      const ollamaStatus = statusData.ollama || 'disconnected';
       return (ollamaStatus === 'connected' || ollamaStatus === 'online') ? 'online' : 'offline';
     default:
       return 'offline';

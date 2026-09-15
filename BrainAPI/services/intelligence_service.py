@@ -100,11 +100,14 @@ SMART CONTEXT RULES
 CRITICAL RULES
 ═══════════════════════════════════════════
 1. Return ONLY valid JSON — no explanation, no markdown, no prefix text
-2. "response" field MUST be in the SAME LANGUAGE as user input
-   - English input → English response
-   - Roman Urdu input → Roman Urdu response  
-   - Urdu script → Urdu script response
-3. NEVER return intent "unknown" — always make your best guess
+2. "response" field:
+   - For English inputs or unclear text: ALWAYS respond in clear, professional, friendly English (e.g., "Opening Notepad!", "Searching YouTube for your music!").
+   - For Roman Urdu / Urdu inputs: Respond in natural Roman Urdu or English matching the user's intent.
+3. If user input is repetitive, garbled, or background noise (like "you you you", "thank you", or unclear syllables):
+   - Set intent: "unclear"
+   - Set steps: []
+   - Set response: "I did not catch that command clearly. Please try speaking again or typing your request."
+   - Set confidence: 0.0
 4. confidence 0.0–1.0 based on how sure you are
 
 ═══════════════════════════════════════════
@@ -272,27 +275,29 @@ def _smart_fallback(command: str) -> dict:
     if any(w in cmd for w in ["screenshot", "screen pakdo", "screen capture"]):
         return _build("screenshot", "desktop_api", 8003,
                       [{"step": 1, "action": "screenshot"}],
-                      "Screenshot le liya! Desktop par save ho gaya.", command)
+                      "Screenshot taken and saved to Desktop!" if "screenshot" in cmd else "Screenshot le liya! Desktop par save ho gaya.", command)
 
     # Volume
     if any(w in cmd for w in ["volume", "awaz", "sound"]):
         is_down = any(w in cmd for w in ["down", "kam", "ghatao", "low", "dheemi"])
         action = "volume_down" if is_down else "volume_up"
+        resp_en = "Volume decreased!" if is_down else "Volume increased!"
+        resp_ur = "Awaz kam kar di!" if is_down else "Awaz barha di!"
         return _build(action, "desktop_api", 8003,
                       [{"step": 1, "action": action}],
-                      "Awaz kam kar di!" if is_down else "Awaz barha di!", command)
+                      resp_en if "volume" in cmd else resp_ur, command)
 
     # Notepad
     if any(w in cmd for w in ["notepad", "note pad"]):
         return _build("open_notepad", "desktop_api", 8003,
                       [{"step": 1, "action": "open_app", "target": "notepad"}],
-                      "Notepad khul raha hai!", command)
+                      "Opening Notepad!" if "open" in cmd or "notepad" in cmd else "Notepad khul raha hai!", command)
 
     # Calculator
     if any(w in cmd for w in ["calculator", "calc", "hisab"]):
         return _build("open_calculator", "desktop_api", 8003,
                       [{"step": 1, "action": "open_app", "target": "calculator"}],
-                      "Calculator khul raha hai!", command)
+                      "Opening Calculator!" if "calculator" in cmd or "calc" in cmd else "Calculator khul raha hai!", command)
 
     # Common websites
     sites = {
@@ -306,14 +311,15 @@ def _smart_fallback(command: str) -> dict:
     }
     for key, (url, label) in sites.items():
         if key in cmd:
+            resp = f"Opening {label}!" if "open" in cmd or key in cmd else f"{label} khul raha hai!"
             return _build(f"open_{key}", "browser_api", 8002,
                           [{"step": 1, "action": "open_url", "target": url}],
-                          f"{label} khul raha hai!", command)
+                          resp, command)
 
     # Default: google search
     return _build("search_google", "browser_api", 8002,
                   [{"step": 1, "action": "search_google", "query": command}],
-                  f"Google par search kar raha hoon: {command}", command, confidence=0.5)
+                  f"Searching Google for: {command}", command, confidence=0.5)
 
 
 def _build(intent, api_route, port, steps, response, command, confidence=0.85):
