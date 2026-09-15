@@ -2,7 +2,10 @@ import json
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List
-import config
+try:
+    import config
+except ImportError:
+    from BrainAPI import config
 
 
 class TaskService:

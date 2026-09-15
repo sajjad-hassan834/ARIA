@@ -189,6 +189,11 @@ def execute_plan_endpoint(req: ExecutePlanRequest):
                 res = file_service.open_file(
                     path=params.get("path") or params.get("target") or params.get("query", "")
                 )
+            elif action in ["list_files", "file_list", "files_list"]:
+                res = file_service.list_files(
+                    location=params.get("location") or params.get("target", "desktop"),
+                    extension=params.get("extension"),
+                )
             else:
                 res = {"action": action, "status": "simulated", "step": idx}
             results.append({"step": idx, "action": action, "result": res})

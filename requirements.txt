@@ -36,6 +36,8 @@ pillow>=9.5.0
 
 # Brain API & Local LLM Integration
 ollama>=0.6.0
+openai>=1.0.0
+SpeechRecognition>=3.10.0
 
 # Testing & Quality
 pytest>=8.0.0

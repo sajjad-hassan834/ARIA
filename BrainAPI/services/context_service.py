@@ -2,7 +2,10 @@ import json
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-import config
+try:
+    import config
+except ImportError:
+    from BrainAPI import config
 
 
 class ContextService:

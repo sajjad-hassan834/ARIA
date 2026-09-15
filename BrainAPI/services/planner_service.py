@@ -2,7 +2,10 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 import httpx
-import config
+try:
+    import config
+except ImportError:
+    from BrainAPI import config
 from .context_service import context_service
 
 
