@@ -24,7 +24,7 @@ PORTS = {
     "browser_api": int(os.getenv("BROWSER_PORT", 8002)),
     "desktop_api": int(os.getenv("DESKTOP_PORT", 8003)),
     "file_api": int(os.getenv("FILE_PORT", 8004)),
-    "gateway_api": int(os.getenv("GATEWAY_PORT", 8080)),
+    "gateway_api": int(os.getenv("PORT", os.getenv("GATEWAY_PORT", 8080))),
     "ollama": 11434,
 }
 
