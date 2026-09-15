@@ -1,7 +1,7 @@
 """
 ARIA Voice Command Terminal Test Script
-Tests the full voice pipeline with auto-microphone detection and live volume meter:
-Microphone -> Gateway (8080) -> SpeechAPI Whisper (8000) -> BrainAPI OpenAI (8001) -> Desktop/Browser Subsystem (8002/8003) -> TTS Voice Response
+Records live audio directly from the active Realtek Microphone (Device 18) via sounddevice,
+sends to ARIA Gateway API (8080), transcribes via Whisper, plans via OpenAI, and executes.
 """
 import sys
 import os
@@ -19,87 +19,75 @@ except ImportError:
 
 GATEWAY_AUDIO_URL = "http://127.0.0.1:8080/api/gateway/command/audio"
 
-def find_best_microphone_index():
-    """Find the active microphone device index with the strongest signal."""
+def get_real_microphone_device():
+    """Identify the active hardware microphone device index."""
     if not sd:
         return None
 
+    # Priority 1: Device 18 (Microphone Array 2 - Realtek HD Audio Mic input with SST)
     devices = sd.query_devices()
-    preferred_keywords = ["microphone array 2", "realtek hd audio mic", "microphone array", "input"]
-
-    # 1. First priority: Look for Realtek SST / Microphone Array 2 (known active device 18)
     for idx, d in enumerate(devices):
-        if d.get("max_input_channels", 0) > 0:
-            name_lower = d.get("name", "").lower()
-            if "microphone array 2" in name_lower or "sst" in name_lower:
-                return idx
+        name = d.get("name", "")
+        if "Microphone Array 2" in name and d.get("max_input_channels", 0) > 0:
+            return idx
 
-    # 2. Second priority: Probe devices for non-zero signal
-    candidates = []
+    # Priority 2: Any Microphone Array with positive input channels
     for idx, d in enumerate(devices):
-        if d.get("max_input_channels", 0) > 0:
-            try:
-                rec = sd.rec(int(0.08 * 16000), samplerate=16000, channels=1, dtype='int16', device=idx)
-                sd.wait()
-                amp = int(np.max(np.abs(rec)))
-                candidates.append((amp, idx, d.get("name")))
-            except Exception:
-                continue
-
-    if candidates:
-        candidates.sort(key=lambda x: x[0], reverse=True)
-        # Return device with highest amplitude
-        return candidates[0][1]
+        name = d.get("name", "")
+        if "Microphone Array" in name and d.get("max_input_channels", 0) > 0:
+            return idx
 
     return None
 
 def record_live_audio(output_path: str, duration_sec: int = 4, device_index: int = None):
-    """Record live audio using sounddevice with a live audio level meter."""
+    """Record live audio using sounddevice.rec."""
     if not sd:
-        print("[-] sounddevice not available. Please install: pip install sounddevice")
+        print("[-] sounddevice not available. Please run: pip install sounddevice")
         return False
 
-    dev_idx = device_index if device_index is not None else find_best_microphone_index()
+    dev_idx = device_index if device_index is not None else get_real_microphone_device()
     dev_name = sd.query_devices(dev_idx)["name"] if dev_idx is not None else "Default"
-    print(f"\n[+] Using Microphone: [{dev_idx}] {dev_name}")
+    print(f"\n[+] Active Hardware Microphone Selected: [{dev_idx}] {dev_name}")
 
     sample_rate = 16000
     total_frames = int(duration_sec * sample_rate)
-    chunk_size = int(sample_rate * 0.1)  # 100ms chunks for meter
-    num_chunks = int(duration_sec / 0.1)
 
-    all_audio = []
-    print(f"\n[>>>] LISTENING NOW! Speak your command clearly into your mic... [{duration_sec}s]\n")
+    print(f"\n[>>>] PREPARE TO SPEAK... Starting in 1 second...")
+    time.sleep(1.0)
+    print(f"\n{'='*60}")
+    print(f"  [>>>] LISTENING NOW! Speak your command into your microphone!  ")
+    print(f"{'='*60}\n")
 
     try:
-        with sd.InputStream(samplerate=sample_rate, channels=1, dtype='int16', device=dev_idx) as stream:
-            for _ in range(num_chunks):
-                data, overflowed = stream.read(chunk_size)
-                all_audio.append(data)
-                amp = np.max(np.abs(data))
-                level = min(20, int(amp / 1500))
-                bar = "█" * level + "░" * (20 - level)
-                sys.stdout.write(f"\r  Mic Level: [{bar}] {amp:5d} / 32767")
-                sys.stdout.flush()
+        # Asynchronous non-blocking recording buffer
+        audio_buffer = sd.rec(total_frames, samplerate=sample_rate, channels=1, dtype='int16', device=dev_idx)
 
-        print("\n\n[✓] Recording complete. Processing audio...")
-        full_waveform = np.concatenate(all_audio, axis=0)
+        # Interactive countdown
+        for rem in range(duration_sec, 0, -1):
+            sys.stdout.write(f"\r  >>> Recording in progress... [ {rem} seconds remaining ] <<<  ")
+            sys.stdout.flush()
+            time.sleep(1.0)
 
-        max_volume = int(np.max(np.abs(full_waveform)))
-        if max_volume < 100:
-            print(f"[!] Warning: Audio signal was very quiet (Peak: {max_volume}). Please check mic volume in Windows.")
-        else:
-            print(f"[✓] Voice audio captured cleanly (Peak Amplitude: {max_volume})")
+        sd.wait()
+        sys.stdout.write("\r  [✓] Recording complete! Processing your voice command...          \n\n")
+        sys.stdout.flush()
+
+        peak = int(np.max(np.abs(audio_buffer)))
+        print(f"[+] Audio Capture Signal Level: Peak Amplitude = {peak} / 32767")
+
+        if peak < 80:
+            print("[!] Warning: Recorded audio is very quiet. Make sure you speak directly into your laptop mic.")
 
         with wave.open(output_path, "wb") as wf:
             wf.setnchannels(1)
             wf.setsampwidth(2)
             wf.setframerate(sample_rate)
-            wf.writeframes(full_waveform.tobytes())
+            wf.writeframes(audio_buffer.tobytes())
 
         return True
+
     except Exception as e:
-        print(f"[-] Recording error: {e}")
+        print(f"\n[-] Recording error: {e}")
         return False
 
 def generate_speech_wav(text: str, output_path: str):
@@ -112,7 +100,7 @@ def generate_speech_wav(text: str, output_path: str):
 
 def test_voice(audio_file_path: str):
     """Upload audio file to Gateway and display response."""
-    print(f"\n[*] Sending audio to ARIA Gateway: {GATEWAY_AUDIO_URL}...")
+    print(f"[*] Uploading audio to ARIA Gateway: {GATEWAY_AUDIO_URL}...")
     t0 = time.perf_counter()
 
     with open(audio_file_path, "rb") as f:
